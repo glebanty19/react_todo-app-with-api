@@ -15,8 +15,6 @@ type Props = {
   updatingTodoIds: number[];
   tempTodo: Todo | null;
   error?: string;
-  editingTodoId?: number;
-  updateSucceededId?: number;
 };
 
 export const TodoList: React.FC<Props> = ({
@@ -30,23 +28,21 @@ export const TodoList: React.FC<Props> = ({
   updatingTodoIds,
   tempTodo,
   error,
-  editingTodoId,
-  updateSucceededId,
 }) => {
   const filteredTodos = todos.filter(todo => {
-    if (filterStatus === FilterStatus.All) {
-      return true;
-    }
+    switch (filterStatus) {
+      case FilterStatus.All:
+        return true;
 
-    if (filterStatus === FilterStatus.Active) {
-      return !todo.completed;
-    }
+      case FilterStatus.Active:
+        return !todo.completed;
 
-    if (filterStatus === FilterStatus.Completed) {
-      return todo.completed;
-    }
+      case FilterStatus.Completed:
+        return todo.completed;
 
-    return true;
+      default:
+        return true;
+    }
   });
 
   return (
@@ -70,8 +66,7 @@ export const TodoList: React.FC<Props> = ({
               onTitleChange={onTitleChange}
               isDeleting={deletingTodoIds.includes(todo.id)}
               isUpdating={updatingTodoIds.includes(todo.id)}
-              errorHappened={!!error && todo.id === editingTodoId}
-              editSucceeded={todo.id === updateSucceededId}
+              errorHappened={!!error && updatingTodoIds.includes(todo.id)}
             />
           ))}
 

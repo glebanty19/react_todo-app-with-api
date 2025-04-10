@@ -1,5 +1,6 @@
 import React from 'react';
 import { FilterStatus } from '../types/FilterStatus';
+import cn from 'classnames';
 
 type Props = {
   filterStatus: FilterStatus;
@@ -11,7 +12,9 @@ export const TodoFilter: React.FC<Props> = ({ filterStatus, onChange }) => {
     <nav className="filter" data-cy="Filter">
       <a
         href="#/"
-        className={`filter__link ${filterStatus === FilterStatus.All ? 'selected' : ''}`}
+        className={cn('filter__link', {
+          selected: filterStatus === FilterStatus.All,
+        })}
         data-cy="FilterLinkAll"
         onClick={e => {
           e.preventDefault();
@@ -23,7 +26,9 @@ export const TodoFilter: React.FC<Props> = ({ filterStatus, onChange }) => {
 
       <a
         href="#/active"
-        className={`filter__link ${filterStatus === FilterStatus.Active ? 'selected' : ''}`}
+        className={cn('filter__link', {
+          selected: filterStatus === FilterStatus.Active,
+        })}
         data-cy="FilterLinkActive"
         onClick={e => {
           e.preventDefault();
@@ -35,7 +40,9 @@ export const TodoFilter: React.FC<Props> = ({ filterStatus, onChange }) => {
 
       <a
         href="#/completed"
-        className={`filter__link ${filterStatus === FilterStatus.Completed ? 'selected' : ''}`}
+        className={cn('filter__link', {
+          selected: filterStatus === FilterStatus.Completed,
+        })}
         data-cy="FilterLinkCompleted"
         onClick={e => {
           e.preventDefault();

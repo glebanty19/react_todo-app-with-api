@@ -12,7 +12,6 @@ type Props = {
   isLoading?: boolean;
   isUpdating?: boolean;
   errorHappened?: boolean;
-  editSucceeded?: boolean;
 };
 
 export const TodoItem: React.FC<Props> = ({
@@ -24,10 +23,12 @@ export const TodoItem: React.FC<Props> = ({
   isLoading = false,
   isUpdating = false,
   errorHappened = false,
-  editSucceeded = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(todo.title);
+  const [previouslyUpdating, setPreviouslyUpdating] = useState(false);
+  const [previouslyDeleting, setPreviouslyDeleting] = useState(false);
+  const [attemptedEmptySubmit, setAttemptedEmptySubmit] = useState(false);
 
   const editInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,7 +41,6 @@ export const TodoItem: React.FC<Props> = ({
   useEffect(() => {
     if (errorHappened && isEditing && editInputRef.current) {
       editInputRef.current.focus();
-
       const length = editInputRef.current.value.length;
 
       editInputRef.current.setSelectionRange(length, length);
@@ -48,10 +48,42 @@ export const TodoItem: React.FC<Props> = ({
   }, [errorHappened, isEditing]);
 
   useEffect(() => {
-    if (editSucceeded && isEditing) {
-      setIsEditing(false);
+    if (errorHappened) {
+      setIsEditing(true);
     }
-  }, [editSucceeded, isEditing]);
+  }, [errorHappened]);
+
+  useEffect(() => {
+    if (previouslyUpdating && !isUpdating) {
+      if (!errorHappened) {
+        setIsEditing(false);
+      }
+    }
+
+    setPreviouslyUpdating(isUpdating);
+  }, [isUpdating, errorHappened, previouslyUpdating]);
+
+  useEffect(() => {
+    if (previouslyDeleting && !isDeleting) {
+      if (errorHappened) {
+        setIsEditing(true);
+        if (!isDeleting && !isUpdating) {
+          setAttemptedEmptySubmit(false);
+        }
+      } else if (!errorHappened && attemptedEmptySubmit) {
+        setIsEditing(false);
+        setAttemptedEmptySubmit(false);
+      }
+    }
+
+    setPreviouslyDeleting(isDeleting);
+  }, [
+    isDeleting,
+    errorHappened,
+    previouslyDeleting,
+    attemptedEmptySubmit,
+    isUpdating,
+  ]);
 
   const handleDoubleClick = () => {
     setIsEditing(true);
@@ -72,6 +104,7 @@ export const TodoItem: React.FC<Props> = ({
     }
 
     if (trimmedTitle === '') {
+      setAttemptedEmptySubmit(true);
       onDelete(todo.id);
     } else {
       onTitleChange(todo.id, trimmedTitle);
@@ -89,7 +122,7 @@ export const TodoItem: React.FC<Props> = ({
     <div
       key={todo.id}
       data-cy="Todo"
-      className={`todo ${todo.completed ? 'completed' : ''}`}
+      className={cn('todo', { completed: todo.completed })}
     >
       <label className="todo__status-label">
         <input
@@ -107,6 +140,17 @@ export const TodoItem: React.FC<Props> = ({
             e.preventDefault();
             handleTitleSubmit();
           }}
+          onBlur={e => {
+            if (
+              !errorHappened &&
+              !isUpdating &&
+              !isDeleting &&
+              !isLoading &&
+              !e.currentTarget.contains(e.relatedTarget)
+            ) {
+              handleTitleSubmit();
+            }
+          }}
         >
           <input
             data-cy="TodoTitleField"
@@ -116,11 +160,6 @@ export const TodoItem: React.FC<Props> = ({
             ref={editInputRef}
             value={newTitle}
             onChange={handleTitleChange}
-            onBlur={() => {
-              if (!errorHappened) {
-                handleTitleSubmit();
-              }
-            }}
             onKeyUp={handleKeyUp}
           />
         </form>
@@ -130,11 +169,17 @@ export const TodoItem: React.FC<Props> = ({
             data-cy="TodoTitle"
             className="todo__title"
             onDoubleClick={handleDoubleClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                handleDoubleClick();
+              }
+            }}
           >
             {todo.title}
           </span>
 
-          {/* Remove button appears only on hover */}
           <button
             type="button"
             className="todo__remove"
@@ -145,6 +190,7 @@ export const TodoItem: React.FC<Props> = ({
           </button>
         </>
       )}
+
       <div
         data-cy="TodoLoader"
         className={cn('modal overlay', {

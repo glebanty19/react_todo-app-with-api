@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
 import React, { useEffect, useState } from 'react';
+import cn from 'classnames';
 import { UserWarning } from './UserWarning';
 import {
   USER_ID,
@@ -14,6 +15,7 @@ import { FilterStatus } from './types/FilterStatus';
 import { TodoFilter } from './components/TodoFilter';
 import { TodoList } from './components/TodoList';
 import { ErrorNotification } from './components/ErrorNotification';
+import { ErrorMessage } from './types/ErrorMessage';
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -31,14 +33,6 @@ export const App: React.FC = () => {
 
   const newTodoFieldRef = React.useRef<HTMLInputElement>(null);
 
-  const [editingTodoId, setEditingTodoId] = useState<number | undefined>(
-    undefined,
-  );
-
-  const [updatedTodoId, setUpdatedTodoId] = useState<number | undefined>(
-    undefined,
-  );
-
   useEffect(() => {
     const loadTodos = async () => {
       try {
@@ -49,7 +43,7 @@ export const App: React.FC = () => {
 
         setTodos(loadedTodos);
       } catch (e) {
-        setError('Unable to load todos');
+        setError(ErrorMessage.UNABLE_TO_LOAD);
       } finally {
         setIsLoading(false);
       }
@@ -78,20 +72,6 @@ export const App: React.FC = () => {
     }
   }, [isAddingTodo]);
 
-  useEffect(() => {
-    if (updatedTodoId !== undefined) {
-      const timerId = setTimeout(() => {
-        setUpdatedTodoId(undefined);
-      }, 100);
-
-      return () => {
-        clearTimeout(timerId);
-      };
-    }
-
-    return undefined;
-  }, [updatedTodoId]);
-
   const hideErrorNotification = () => {
     setError('');
   };
@@ -102,7 +82,7 @@ export const App: React.FC = () => {
     const trimmedTitle = newTodoTitle.trim();
 
     if (!trimmedTitle) {
-      setError('Title should not be empty');
+      setError(ErrorMessage.EMPTY_TITLE);
 
       return;
     }
@@ -122,7 +102,7 @@ export const App: React.FC = () => {
       setTodos(prevTodos => [...prevTodos, newTodo]);
       setNewTodoTitle('');
     } catch (e) {
-      setError('Unable to add a todo');
+      setError(ErrorMessage.UNABLE_TO_ADD);
     } finally {
       setTempTodo(null);
       setIsAddingTodo(false);
@@ -140,7 +120,7 @@ export const App: React.FC = () => {
 
       setTodos(prevTodos => prevTodos.filter(todo => todo.id !== todoId));
     } catch (e) {
-      setError('Unable to delete a todo');
+      setError(ErrorMessage.UNABLE_TO_DELETE);
     } finally {
       setDeletingTodoIds(prev => prev.filter(id => id !== todoId));
 
@@ -169,7 +149,7 @@ export const App: React.FC = () => {
         prevTodos.map(todo => (todo.id === todoId ? updatedTodo : todo)),
       );
     } catch (e) {
-      setError('Unable to update a todo');
+      setError(ErrorMessage.UNABLE_TO_UPDATE);
     } finally {
       setUpdatingTodoIds(prev => prev.filter(id => id !== todoId));
 
@@ -186,8 +166,6 @@ export const App: React.FC = () => {
       return;
     }
 
-    setEditingTodoId(todoId);
-    setUpdatedTodoId(undefined);
     setUpdatingTodoIds(prev => [...prev, todoId]);
 
     try {
@@ -205,18 +183,14 @@ export const App: React.FC = () => {
       setTodos(prevTodos =>
         prevTodos.map(todo => (todo.id === todoId ? updatedTodo : todo)),
       );
-
-      setUpdatedTodoId(todoId);
-
-      setEditingTodoId(undefined);
     } catch (e) {
-      setError('Unable to update a todo');
+      setError(ErrorMessage.UNABLE_TO_UPDATE);
 
       return;
     } finally {
       setUpdatingTodoIds(prev => prev.filter(id => id !== todoId));
 
-      if (!error && !editingTodoId && newTodoFieldRef.current) {
+      if (!error && newTodoFieldRef.current) {
         newTodoFieldRef.current.focus();
       }
     }
@@ -267,7 +241,7 @@ export const App: React.FC = () => {
       );
 
       if (hasError) {
-        setError('Unable to update a todo');
+        setError(ErrorMessage.UNABLE_TO_UPDATE);
       }
     } finally {
       setUpdatingTodoIds([]);
@@ -314,7 +288,7 @@ export const App: React.FC = () => {
       );
 
       if (hasError) {
-        setError('Unable to delete a todo');
+        setError(ErrorMessage.UNABLE_TO_DELETE);
       }
     } finally {
       setDeletingTodoIds(prev =>
@@ -342,17 +316,15 @@ export const App: React.FC = () => {
 
       <div className="todoapp__content">
         <header className="todoapp__header">
-          {/* this button should have `active` class only if all todos are completed */}
           {todos.length > 0 && (
             <button
               type="button"
-              className={`todoapp__toggle-all ${areAllCompleted ? 'active' : ''}`}
+              className={cn('todoapp__toggle-all', { active: areAllCompleted })}
               data-cy="ToggleAllButton"
               onClick={handleToggleAll}
             />
           )}
 
-          {/* Add a todo on form submit */}
           <form onSubmit={handleTodoSubmit}>
             <input
               data-cy="NewTodoField"
@@ -378,24 +350,19 @@ export const App: React.FC = () => {
           updatingTodoIds={updatingTodoIds}
           tempTodo={tempTodo}
           error={error}
-          editingTodoId={editingTodoId}
-          updateSucceededId={updatedTodoId}
         />
 
-        {/* Hide the footer if there are no todos */}
         {todos.length > 0 && (
           <footer className="todoapp__footer" data-cy="Footer">
             <span className="todo-count" data-cy="TodosCounter">
               {`${activeTodosCount} item${activeTodosCount !== 1 ? 's' : ''} left`}
             </span>
 
-            {/* Active link should have the 'selected' class */}
             <TodoFilter
               filterStatus={filterStatus}
               onChange={setFilterStatus}
             />
 
-            {/* this button should be disabled if there are no completed todos */}
             <button
               type="button"
               className="todoapp__clear-completed"
@@ -408,8 +375,6 @@ export const App: React.FC = () => {
           </footer>
         )}
       </div>
-      {/* DON'T use conditional rendering to hide the notification */}
-      {/* Add the 'hidden' class to hide the message smoothly */}
       <ErrorNotification onClose={hideErrorNotification} error={error} />
     </div>
   );
